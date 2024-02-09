@@ -1,9 +1,19 @@
 const mongoose = require("mongoose")
 
 const User = mongoose.model("User", {
-    username: String,
-    email: String,
-    avatar: Object,
+
+    user: {
+        username: {
+            type: String,
+            required: true,
+        },
+        avatar: Object
+    },
+    email: {
+        type: String,
+        required: true
+    },
+
     hash: String,
     salt: String,
     token: String,
