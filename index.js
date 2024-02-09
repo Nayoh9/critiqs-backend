@@ -15,6 +15,9 @@ mongoose.connect(process.env.MONGODB_LOCAL);
 const entitiesRoutes = require("./routes/entities.js")
 app.use(entitiesRoutes)
 
+const userRoutes = require("./routes/user.js")
+app.use(userRoutes)
+
 
 if (process.env.PORT) {
     app.listen(process.env.PORT, () => {

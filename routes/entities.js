@@ -10,9 +10,9 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const convertToBase64 = (file) => {
-    return `data:${file.mimetype};base64,${file.data.toString("base64")}`;
-};
+// Utils import 
+const convertToBase64 = require('../utils/functions')
+
 
 // Models import 
 const Entity = require("../Models/Entity");
