@@ -13,17 +13,22 @@ cloudinary.config({
 // Utils import 
 const convertToBase64 = require('../utils/functions')
 
-
 // Models import 
 const Entity = require("../Models/Entity");
 
 // Route to create a new entity
 router.post("/entity/create", fileUpload(), async (req, res) => {
     try {
+
+        if (!req.files) {
+            throw new Error('Please upload an image')
+        }
+
         const pictureToUpload = req.files.entity_picture
 
-        const result = await cloudinary.uploader.upload(convertToBase64(pictureToUpload), { folder: "critiqs" })
-        console.log(result);
+        let result = await cloudinary.uploader.upload(convertToBase64(pictureToUpload), {
+            folder: "critiqs/entities_images"
+        })
 
         const { name, category, origin } = req.body
 
@@ -39,6 +44,7 @@ router.post("/entity/create", fileUpload(), async (req, res) => {
         await entity.save()
 
         res.status(200).json("New entity created")
+
     } catch (error) {
         res.status(500).json({ message: error.message })
     }

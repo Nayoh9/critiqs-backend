@@ -17,7 +17,7 @@ cloudinary.config({
 const convertToBase64 = require("../utils/functions")
 
 // Model import 
-const User = require("../Models/User")
+const User = require("../Models/User");
 
 
 // Route to create a new user 
@@ -26,21 +26,96 @@ router.post("/user/create", fileUpload(), async (req, res) => {
     try {
         const { username, email, password } = req.body
 
-        const salt = uid(16)
-        const hash = password + salt
+        if (username === "") {
+            throw new Error("No username received")
+        }
 
-        console.log(salt)
+        const userExistinDB = await User.findOne({ "user.username": username })
+        const emailExistinDB = await User.findOne({ email: email })
+
+        if (userExistinDB) {
+            return res.status(403).json("Username already in use")
+        }
+
+        if (emailExistinDB) {
+            return res.status(403).json("Email already in use")
+        }
+
+        if (password === "") {
+            throw new Error("No password received")
+        }
+
+        for (let i = 0; i < username.length; i++) {
+            if (username[i] === " ") {
+                throw new Error("Wrong username")
+            }
+        }
+
+        for (let i = 0; i < password.length; i++) {
+            if (password[i] === " ") {
+                throw new Error("Wrong password")
+            }
+        }
+        const token = uid(16)
+        const salt = uid(16)
+        const hash = sha256(password + salt).toString(Base64)
+
+        let result = "none"
+
+        if (req.files) {
+            const pictureToUpload = req.files.avatar
+            result = await cloudinary.uploader.upload(convertToBase64(pictureToUpload), { folder: "critiqs/users_avatars" })
+        }
 
         const user = new User({
-            username: username,
+            user: {
+                username: username,
+                avatar: result,
+            },
             email: email,
+            hash: hash,
+            salt: salt,
+            token: token,
             entities_liked: 0,
             comments_posted: 0
         })
 
-        // await user.save()
+        await user.save()
 
         res.status(200).json("User created successfully")
+    } catch (error) {
+        res.status(500).json({ message: error.message })
+    }
+})
+
+// Route to login a user 
+router.get("/user/login", async (req, res) => {
+    try {
+        const { email, password } = req.body
+
+        if (email === "") {
+            throw new Error("Wrong email or password")
+        }
+
+        if (password === "") {
+            throw new Error("Wrong email or password")
+        }
+
+        const userExistinDB = await User.findOne({ email: email })
+
+        if (!userExistinDB) {
+            return res.status(404).json("Wrong email or password")
+        }
+
+        const userSalt = userExistinDB.salt
+        const hash2 = sha256(password + userSalt).toString(Base64)
+
+        if (hash2 !== userExistinDB.hash) {
+            return res.status(404).json("Wrong email or password")
+        }
+
+        res.status(200).json(userExistinDB.token)
+
     } catch (error) {
         res.status(500).json({ message: error.message })
     }
