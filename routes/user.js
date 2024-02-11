@@ -14,19 +14,20 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const convertToBase64 = require("../utils/functions")
+const convertToBase64 = require('../utils/convertToBase64')
 
 // Model import 
 const User = require("../Models/User");
 
+// Utils import 
+const containsSpaces = require('../utils/containsSpaces')
 
 // Route to create a new user 
-
 router.post("/user/create", fileUpload(), async (req, res) => {
     try {
         const { username, email, password } = req.body
 
-        if (username === "") {
+        if (!username) {
             throw new Error("No username received")
         }
 
@@ -41,21 +42,12 @@ router.post("/user/create", fileUpload(), async (req, res) => {
             return res.status(403).json("Email already in use")
         }
 
-        if (password === "") {
+        if (!password) {
             throw new Error("No password received")
         }
 
-        for (let i = 0; i < username.length; i++) {
-            if (username[i] === " ") {
-                throw new Error("Wrong username")
-            }
-        }
+        containsSpaces(username, password, email)
 
-        for (let i = 0; i < password.length; i++) {
-            if (password[i] === " ") {
-                throw new Error("Wrong password")
-            }
-        }
         const token = uid(16)
         const salt = uid(16)
         const hash = sha256(password + salt).toString(Base64)
@@ -91,17 +83,15 @@ router.post("/user/create", fileUpload(), async (req, res) => {
 // Route to login a user 
 router.get("/user/login", async (req, res) => {
     try {
-        const { email, password } = req.body
+        const { email, password, username } = req.body
 
-        if (email === "") {
-            throw new Error("Wrong email or password")
+        if (!password || !username && !email) {
+            throw new Error("Wrong email/username or password")
         }
 
-        if (password === "") {
-            throw new Error("Wrong email or password")
-        }
+        containsSpaces(password, email ? email : "", username ? username : "")
 
-        const userExistinDB = await User.findOne({ email: email })
+        const userExistinDB = await User.findOne({ $or: [{ email: email }, { "user.username": username }] })
 
         if (!userExistinDB) {
             return res.status(404).json("Wrong email or password")
@@ -114,7 +104,7 @@ router.get("/user/login", async (req, res) => {
             return res.status(404).json("Wrong email or password")
         }
 
-        res.status(200).json(userExistinDB.token)
+        res.status(200).json("User connected, " + userExistinDB.token)
 
     } catch (error) {
         res.status(500).json({ message: error.message })

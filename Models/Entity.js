@@ -18,7 +18,12 @@ const Entity = mongoose.model("Entity", {
         required: true
     },
     entity_comments: Array,
-    number_of_like: Number
+    number_of_like: Number,
+    created_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    }
 })
 
 
