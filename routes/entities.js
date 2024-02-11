@@ -11,18 +11,23 @@ cloudinary.config({
 });
 
 // Utils import 
-const convertToBase64 = require('../utils/functions')
+const convertToBase64 = require('../utils/convertToBase64')
+const isAuthenticaded = require('../middlewares/isAuthenticated')
+
+
 
 // Models import 
 const Entity = require("../Models/Entity");
+const User = require("../Models/User")
 
 // Route to create a new entity
-router.post("/entity/create", fileUpload(), async (req, res) => {
+router.post("/entity/create", isAuthenticaded, fileUpload(), async (req, res) => {
     try {
-
         if (!req.files) {
             throw new Error('Please upload an image')
         }
+
+        const { name, category, origin } = req.body
 
         const pictureToUpload = req.files.entity_picture
 
@@ -30,20 +35,24 @@ router.post("/entity/create", fileUpload(), async (req, res) => {
             folder: "critiqs/entities_images"
         })
 
-        const { name, category, origin } = req.body
+        const token = req.headers.authorization.replace("Bearer ", "")
+        const user = await User.findOne({ token: token })
+
 
         const entity = new Entity({
             name: name,
             category: category,
             origin: origin,
             entity_picture: result,
+            created_by: user,
             entity_comments: [],
-            number_of_like: 0
+            number_of_like: 0,
         })
 
         await entity.save()
 
         res.status(200).json("New entity created")
+
 
     } catch (error) {
         res.status(500).json({ message: error.message })
